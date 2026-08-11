@@ -1,0 +1,25 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unittest:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: ["3.11", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/skills/zhihu-memory/scripts
+        run: python -m unittest discover -s tests -v
+      - name: Compile entry point
+        run: python -m py_compile skills/zhihu-memory/scripts/zhihu_memory.py

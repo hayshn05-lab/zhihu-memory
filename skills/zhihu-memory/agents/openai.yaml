@@ -1,0 +1,4 @@
+interface:
+  display_name: "Zhihu Memory"
+  short_description: "Search an auditable local snapshot of your Zhihu favorites"
+  default_prompt: "Use $zhihu-memory to find something I previously saved on Zhihu."

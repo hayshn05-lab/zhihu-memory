@@ -22,14 +22,14 @@ class ConfigLocatorTests(unittest.TestCase):
             explicit.touch()
             fallback.touch()
             with patch.dict(os.environ, {"ZHIHU_CLI_BIN": str(fallback)}):
-                self.assertEqual(locate_cli(str(explicit)), explicit)
+                self.assertEqual(locate_cli(str(explicit)), explicit.resolve())
 
     def test_cli_bin_environment_is_supported(self):
         with tempfile.TemporaryDirectory() as tmp:
             binary = Path(tmp, "zhihu-cli")
             binary.touch()
             with patch.dict(os.environ, {"ZHIHU_CLI_BIN": str(binary)}, clear=True):
-                self.assertEqual(locate_cli(), binary)
+                self.assertEqual(locate_cli(), binary.resolve())
 
     def test_missing_cli_has_actionable_error(self):
         with patch.dict(os.environ, {}, clear=True), patch("zhihu_memory.locator.default_candidates", return_value=[]):

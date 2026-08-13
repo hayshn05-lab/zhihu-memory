@@ -224,13 +224,35 @@ class MemoryStore:
         row = self.connection.execute("SELECT * FROM sync_runs ORDER BY id DESC LIMIT 1").fetchone()
         return None if row is None else dict(row)
 
-    def all_search_rows(self) -> list[dict[str, Any]]:
+    def all_search_rows(
+        self, candidate_ids: set[int] | None = None, list_terms: list[str] | None = None
+    ) -> list[dict[str, Any]]:
+        where = ""
+        parameters: list[Any] = []
+        if candidate_ids is not None:
+            conditions: list[str] = []
+            if candidate_ids:
+                placeholders = ",".join("?" for _ in candidate_ids)
+                conditions.append(f"f.id IN ({placeholders})")
+                parameters.extend(sorted(candidate_ids))
+            for term in list_terms or []:
+                conditions.append(
+                    "EXISTS (SELECT 1 FROM favorite_memberships mx "
+                    "JOIN favorite_lists lx ON lx.id=mx.list_id "
+                    "WHERE mx.favorite_id=f.id AND instr(lower(lx.title), lower(?)) > 0)"
+                )
+                parameters.append(term)
+            if not conditions:
+                return []
+            where = "WHERE " + " OR ".join(conditions)
         rows = self.connection.execute(
-            """SELECT f.*, GROUP_CONCAT(l.title, char(31)) AS list_titles
-               FROM favorites f
-               LEFT JOIN favorite_memberships m ON m.favorite_id=f.id
-               LEFT JOIN favorite_lists l ON l.id=m.list_id
-               GROUP BY f.id"""
+            f"""SELECT f.*, GROUP_CONCAT(l.title, char(31)) AS list_titles
+                FROM favorites f
+                LEFT JOIN favorite_memberships m ON m.favorite_id=f.id
+                LEFT JOIN favorite_lists l ON l.id=m.list_id
+                {where}
+                GROUP BY f.id""",
+            parameters,
         ).fetchall()
         return [dict(row) for row in rows]
 

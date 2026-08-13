@@ -3,9 +3,8 @@ from __future__ import annotations
 import tempfile
 import time
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, tzinfo
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 from zhihu_memory.search import SearchEngine
 from zhihu_memory.storage import MemoryStore, SchemaVersionError
@@ -71,7 +70,16 @@ class SearchTests(unittest.TestCase):
     def test_date_filter_uses_next_midnight_across_dst(self):
         from zhihu_memory.search import _date_timestamp
 
-        eastern = ZoneInfo("America/New_York")
+        class SyntheticSpringForward(tzinfo):
+            def utcoffset(self, value):
+                local = value.replace(tzinfo=None)
+                boundary = datetime(2024, 3, 10, 2)
+                return timedelta(hours=-4 if local >= boundary else -5)
+
+            def dst(self, value):
+                return self.utcoffset(value) - timedelta(hours=-5)
+
+        eastern = SyntheticSpringForward()
         start = _date_timestamp("2024-03-10", False, eastern)
         end = _date_timestamp("2024-03-10", True, eastern)
         self.assertEqual(end + 1 - start, 23 * 3600)

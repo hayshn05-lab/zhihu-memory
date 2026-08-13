@@ -64,7 +64,8 @@ class SearchEngine:
         after_ts = _date_timestamp(after) if after else None
         before_ts = _date_timestamp(before, end_of_day=True) if before else None
         results: list[dict[str, Any]] = []
-        for row in self.store.all_search_rows():
+        constrained_ids = None if self.store.search_backend != "fts5-trigram" or has_short_term else fts_ids
+        for row in self.store.all_search_rows(constrained_ids, normalized):
             lists = [name for name in (row.get("list_titles") or "").split(chr(31)) if name]
             if list_name and not any(list_name.casefold() in name.casefold() for name in lists):
                 continue
